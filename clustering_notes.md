@@ -1,5 +1,3 @@
-Here are some notes summarizing the information provided:
-
 ### Clustering
 
 **Learning Goals:**
