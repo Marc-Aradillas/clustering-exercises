@@ -9,7 +9,7 @@ from env import get_connection
 # ----------------------ACQUIRE FUNCTION---------------------------------
 def acquire_zillow():
 
-    filename = 'zillow_data'
+    filename = 'zillow_data.csv'
     
     if os.path.isfile(filename):
         
@@ -18,11 +18,21 @@ def acquire_zillow():
     else: 
 
         query = '''
-                SELECT *
-                FROM properties_2017 AS p17
-                LEFT JOIN predictions_2017 AS pr17 ON p17.parcelid = pr17.parcelid
-                LEFT JOIN propertylandusetype AS plu ON p17.propertylandusetypeid = plu.propertylandusetypeid
-                WHERE YEAR(pr17.transactiondate) = 2017;
+                SELECT p17.*, pr17.logerror, pr17.transactiondate
+                FROM (
+                    SELECT parcelid, MAX(transactiondate) AS max_transactiondate
+                    FROM predictions_2017
+                    WHERE YEAR(transactiondate) = 2017
+                    GROUP BY parcelid
+                ) AS latest_transaction_date
+                JOIN properties_2017 AS p17
+                    ON latest_transaction_date.parcelid = p17.parcelid
+                LEFT JOIN predictions_2017 AS pr17
+                    ON p17.parcelid = pr17.parcelid
+                LEFT JOIN propertylandusetype AS plu
+                    ON p17.propertylandusetypeid = plu.propertylandusetypeid
+                WHERE p17.latitude IS NOT NULL
+                    AND p17.longitude IS NOT NULL;
                 '''
 
         url = get_connection('zillow')
@@ -32,4 +42,4 @@ def acquire_zillow():
         # save to csv
         df.to_csv(filename,index=False)
 
-        return df 
+    return df 
