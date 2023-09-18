@@ -93,5 +93,22 @@ def missing_values(df):
 
     return summary_df
 
-    
 
+
+
+
+def handle_missing_values(df, prop_required_column, prop_required_row):
+    # Calculate the threshold for columns and rows
+    
+    total_rows = df.shape[0]
+    total_columns = df.shape[1]
+    col_threshold = int(total_rows * prop_required_column)
+    row_threshold = int(total_columns * prop_required_row)
+    
+    # Drop columns with missing values exceeding the threshold
+    df = df.dropna(axis=1, thresh=col_threshold)
+    
+    # Drop rows with missing values exceeding the threshold
+    df = df.dropna(axis=0, thresh=row_threshold)
+    
+    return df
