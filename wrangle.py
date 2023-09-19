@@ -132,7 +132,7 @@ def handle_missing_values(df, prop_required_column, prop_required_row):
 
 
 
-def train_val_test(df, target=None, seed = 42) -> (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+def train_val_test(df, target=None, seed = 42):
 
     train, val_test = train_test_split(df, train_size = 0.7,
                                        random_state = seed,
