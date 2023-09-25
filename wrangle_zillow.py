@@ -150,33 +150,29 @@ def wrangle_zillow():
     # Summarize the data
     summarize.summarize(df)
 
-    # Identify and create outlier columns
-    for col in df.select_dtypes(include=['number']):
-        df[f'{col}_outliers'] = summarize.identify_outliers(df[col])
-
     # Split the data into train, validation, and test sets
     train, val, test = train_val_test(df)
 
-    # Assuming you have a list of categorical column names in 'categorical_columns'
-    categorical_columns = ['propertyzoningdesc', 'taxdelinquencyflag', 'transactiondate', 'airconditioningdesc', 'architecturalstyledesc', 'heatingorsystemdesc', 'propertylandusedesc', 'storydesc', 'typeconstructiondesc']
+    # # Assuming you have a list of categorical column names in 'categorical_columns'
+    # categorical_columns = ['propertyzoningdesc', 'taxdelinquencyflag', 'transactiondate', 'airconditioningdesc', 'architecturalstyledesc', 'heatingorsystemdesc', 'propertylandusedesc', 'storydesc', 'typeconstructiondesc']
 
-    # Create dummy variables for 'categorical' data in all sets
-    for data_set in [train, val, test]:
-        for category_column in categorical_columns:
-            # Apply one-hot encoding to the categorical column
-            one_hot_encoded = pd.get_dummies(data_set[category_column], prefix=category_column)
+    # # Create dummy variables for 'categorical' data in all sets
+    # for data_set in [train, val, test]:
+    #     for category_column in categorical_columns:
+    #         # Apply one-hot encoding to the categorical column
+    #         one_hot_encoded = pd.get_dummies(data_set[category_column], prefix=category_column)
             
-            # Convert the one-hot encoded columns to integers (0 or 1)
-            one_hot_encoded = one_hot_encoded.astype(int)
+    #         # Convert the one-hot encoded columns to integers (0 or 1)
+    #         one_hot_encoded = one_hot_encoded.astype(int)
             
-            # Add the one-hot encoded columns to the original dataframe
-            data_set = pd.concat([data_set, one_hot_encoded], axis=1)
+    #         # Add the one-hot encoded columns to the original dataframe
+    #         data_set = pd.concat([data_set, one_hot_encoded], axis=1)
             
-            # Drop the original categorical column
-            data_set.drop(columns=[category_column], inplace=True)
+    #         # Drop the original categorical column
+    #         data_set.drop(columns=[category_column], inplace=True)
 
-            # Fill missing values in the original column with 0
-            data_set[category_column].fillna(0, inplace=True)
+    #         # Fill missing values in the original column with 0
+    #         data_set[category_column].fillna(0, inplace=True)
 
     # Select only the numeric columns for scaling (excluding 'categorical' columns)
     numeric_columns = train.select_dtypes(include=['number']).columns
