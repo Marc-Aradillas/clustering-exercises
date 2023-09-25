@@ -7,69 +7,12 @@ from env import get_connection
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 
+# custom modules
+
+import summarize
+
 # Acquire data.
 # ----------------------ACQUIRE FUNCTION---------------------------------
-def acquire_zillow():
-
-    filename = 'zillow_data.csv'
-    
-    if os.path.isfile(filename):
-        
-        return pd.read_csv(filename)
-        
-    else: 
-
-        query = '''
-                SELECT
-                    p17.*,
-                    predictions_2017.logerror,
-                    predictions_2017.transactiondate,
-                    air.airconditioningdesc,
-                    arch.architecturalstyledesc,
-                    build.buildingclassdesc,
-                    heat.heatingorsystemdesc,
-                    land.propertylandusedesc,
-                    story.storydesc,
-                    type.typeconstructiondesc
-                FROM
-                    properties_2017 p17
-                JOIN (
-                    SELECT
-                        parcelid,
-                        MAX(transactiondate) AS max_transactiondate
-                    FROM
-                        predictions_2017
-                    GROUP BY
-                        parcelid
-                ) pred USING(parcelid)
-                JOIN predictions_2017 ON pred.parcelid = predictions_2017.parcelid
-                    AND pred.max_transactiondate = predictions_2017.transactiondate
-                LEFT JOIN airconditioningtype air USING(airconditioningtypeid)
-                LEFT JOIN architecturalstyletype arch USING(architecturalstyletypeid)
-                LEFT JOIN buildingclasstype build USING(buildingclasstypeid)
-                LEFT JOIN heatingorsystemtype heat USING(heatingorsystemtypeid)
-                LEFT JOIN propertylandusetype land USING(propertylandusetypeid)
-                LEFT JOIN storytype story USING(storytypeid)
-                LEFT JOIN typeconstructiontype type USING(typeconstructiontypeid)
-                WHERE
-                    propertylandusedesc = "Single Family Residential"
-                    AND transactiondate <= '2017-12-31'
-                    AND p17.longitude IS NOT NULL
-                    AND p17.latitude IS NOT NULL;
-                '''
-
-        url = get_connection('zillow')
-                
-        df = pd.read_sql(query, url)
-
-        # save to csv
-        df.to_csv(filename,index=False)
-
-    return df
-
-
-
-
 def acquire_mall():
 
     filename_ = 'mall_data.csv'
@@ -169,7 +112,9 @@ def scale_data(train, val, test, scaler):
 
 
 
-def wrangle_mall(df):
+def wrangle_mall():
+
+    df = acquire_mall()
     
     # Summarize the data
     summarize.summarize(df)
@@ -179,7 +124,7 @@ def wrangle_mall(df):
         df[f'{col}_outliers'] = summarize.identify_outliers(df[col])
 
     # Split the data into train, validation, and test sets
-    train, val, test = wrangle.train_val_test(df)
+    train, val, test = train_val_test(df)
 
     # Define the categories for 'gender'
     gender_categories = ['Male', 'Female']  # Adjust as needed based on your data
@@ -190,7 +135,7 @@ def wrangle_mall(df):
             data_set[f'gender_{category}'] = (data_set['gender'] == category).astype(int)
 
         # Handle missing values
-        data_set = wrangle.handle_missing_values(data_set, prop_required_column=0.20, prop_required_row=0.75)
+        data_set = handle_missing_values(data_set, prop_required_column=0.20, prop_required_row=0.75)
 
     # Select only the numeric columns for scaling (excluding 'gender' columns)
     numeric_columns = train.select_dtypes(include=['number']).columns
@@ -201,15 +146,3 @@ def wrangle_mall(df):
         data_set[numeric_columns] = mms.fit_transform(data_set[numeric_columns])
 
     return train, val, test
-
-
-
-def wrangle_zillow():
-
-    df = acquire_zillow()
-
-    df = df[df['propertylandusetypeid'] == 261]
-
-    df = handle_missing_values(df, prop_required_column = .20 , prop_required_row = .50)
-
-    return df

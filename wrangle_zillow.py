@@ -6,6 +6,7 @@ import pandas as pd
 from env import get_connection
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
+import summarize
 
 # Acquire data.
 # ----------------------ACQUIRE FUNCTION---------------------------------
@@ -66,35 +67,6 @@ def acquire_zillow():
         df.to_csv(filename,index=False)
 
     return df
-
-
-
-
-def acquire_mall():
-
-    filename_ = 'mall_data.csv'
-    
-    if os.path.isfile(filename_):
-        
-        return pd.read_csv(filename_)
-        
-    else: 
-
-        query = '''
-                SELECT *
-                FROM customers
-                '''
-        
-        url = get_connection('mall_customers')
-                
-        df = pd.read_sql(query, url)
-
-        # save to csv
-        df.to_csv(filename_,index=False)
-
-    return df
-
-
 
 
 def missing_values(df):
@@ -169,7 +141,11 @@ def scale_data(train, val, test, scaler):
 
 
 
-def wrangle_mall(df):
+def wrangle_zillow():
+    
+    df = acquire_zillow()
+    
+    df = df[df['propertylandusetypeid'] == 261]
     
     # Summarize the data
     summarize.summarize(df)
@@ -179,20 +155,30 @@ def wrangle_mall(df):
         df[f'{col}_outliers'] = summarize.identify_outliers(df[col])
 
     # Split the data into train, validation, and test sets
-    train, val, test = wrangle.train_val_test(df)
+    train, val, test = train_val_test(df)
 
-    # Define the categories for 'gender'
-    gender_categories = ['Male', 'Female']  # Adjust as needed based on your data
+    # Assuming you have a list of categorical column names in 'categorical_columns'
+    categorical_columns = ['propertyzoningdesc', 'taxdelinquencyflag', 'transactiondate', 'airconditioningdesc', 'architecturalstyledesc', 'heatingorsystemdesc', 'propertylandusedesc', 'storydesc', 'typeconstructiondesc']
 
-    # Create dummy variables for 'gender' in all sets
+    # Create dummy variables for 'categorical' data in all sets
     for data_set in [train, val, test]:
-        for category in gender_categories:
-            data_set[f'gender_{category}'] = (data_set['gender'] == category).astype(int)
+        for category_column in categorical_columns:
+            # Apply one-hot encoding to the categorical column
+            one_hot_encoded = pd.get_dummies(data_set[category_column], prefix=category_column)
+            
+            # Convert the one-hot encoded columns to integers (0 or 1)
+            one_hot_encoded = one_hot_encoded.astype(int)
+            
+            # Add the one-hot encoded columns to the original dataframe
+            data_set = pd.concat([data_set, one_hot_encoded], axis=1)
+            
+            # Drop the original categorical column
+            data_set.drop(columns=[category_column], inplace=True)
 
-        # Handle missing values
-        data_set = wrangle.handle_missing_values(data_set, prop_required_column=0.20, prop_required_row=0.75)
+            # Fill missing values in the original column with 0
+            data_set[category_column].fillna(0, inplace=True)
 
-    # Select only the numeric columns for scaling (excluding 'gender' columns)
+    # Select only the numeric columns for scaling (excluding 'categorical' columns)
     numeric_columns = train.select_dtypes(include=['number']).columns
 
     # Scale the numeric data using Min-Max scaling
@@ -201,15 +187,3 @@ def wrangle_mall(df):
         data_set[numeric_columns] = mms.fit_transform(data_set[numeric_columns])
 
     return train, val, test
-
-
-
-def wrangle_zillow():
-
-    df = acquire_zillow()
-
-    df = df[df['propertylandusetypeid'] == 261]
-
-    df = handle_missing_values(df, prop_required_column = .20 , prop_required_row = .50)
-
-    return df
